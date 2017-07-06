@@ -181,7 +181,7 @@ VAR
   next : CHAR;
   delimiterFound : BOOLEAN;
 
-BEGIN (* opening delimiter "(*" has already been consumed *)
+BEGIN (* opening delimiter has already been consumed *)
   delimiterFound := FALSE;
   
   (* consume chars until closing delimiter *)
@@ -218,7 +218,7 @@ VAR
   next : CHAR;
   delimiterFound : BOOLEAN;
 
-BEGIN (* opening delimiter "/*" has already been consumed *)
+BEGIN (* opening delimiter has already been consumed *)
   delimiterFound := FALSE;
   
   (* consume chars until closing delimiter *)
