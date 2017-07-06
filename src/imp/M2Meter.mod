@@ -20,6 +20,13 @@ CONST
   DOUBLEQUOTE = CHR(34);
 
 
+TYPE SymType = (Procedure, Other);
+
+
+VAR
+  rwElsif, rwElse, rwEnd, rwProc, rwUntil : StringT;
+
+
 (* ---------------------------------------------------------------------------
  * procedure Measure(infile)
  * ---------------------------------------------------------------------------
@@ -31,10 +38,14 @@ PROCEDURE Measure ( infile : InfileT; VAR metrics : Metric );
 VAR
   next : CHAR;
   isSloc : BOOLEAN;
+  lastSym : SymType;
+  identOrRW : StringT;
 
 BEGIN
-  (* init flag *)
+  (* init local vars *)
   isSloc := FALSE;
+  lastSym := Other;
+  identOrRW := NIL;
   
   (* init counters *)
   metrics.lines := 0;
@@ -42,9 +53,7 @@ BEGIN
   metrics.comments := 0;
   metrics.semicolons := 0;
   metrics.procedures := 0;
-  
-  (* TO DO : add code to count procedure declarations *)
-  
+    
   (* read chars from infile until EOF *)
   WHILE NOT Infile.eof(infile) DO
     (* all decisions based on lookahead *)
@@ -81,6 +90,7 @@ BEGIN
     | DOUBLEQUOTE, SINGLEQUOTE :
         (* consume *)
         SkipQuotedLiteral(infile);
+        lastSym := Other;
         isSloc := TRUE     
         
     (* m2 comment *)
@@ -98,6 +108,7 @@ BEGIN
         IF (next # '$') AND (next # '?') THEN
           metrics.comments := metrics.comments + 1
         ELSE (* count it as code *)
+          lastSym := Other;
           isSloc := TRUE
         END; (* IF *)
         
@@ -105,6 +116,7 @@ BEGIN
         SkipM2Comment(infile, metrics.lines)
         
       ELSE (* sole parenthesis *)
+        lastSym := Other;
         isSloc := TRUE
       END; (* IF *)
           
@@ -117,6 +129,7 @@ BEGIN
       ELSE (* sole slash *)
         (* consume *)
         Infile.ReadChar(infile, next);
+        lastSym := Other;
         isSloc := TRUE
       END (* IF *)
       
@@ -125,6 +138,41 @@ BEGIN
         (* consume and count *)
         Infile.ReadChar(infile, next);
         metrics.semicolons := metrics.semicolons + 1;
+        lastSym := Other;
+        isSloc := TRUE
+      
+    (* reserved word or identifier *)
+    | 'A' .. 'Z', 'a' .. 'z' :
+        identOrRW := stdIdent(infile);
+        
+        (* PROCEDURE *)
+        IF identOrRW = rwProc THEN
+          metrics.procedures := metrics.procedures + 1;
+          lastSym := Procedure;
+          isSloc := TRUE
+        
+        (* ELSIF | ELSE | END | UNTIL *)
+        ELSIF
+         (identOrRW = rwElsif) OR (identOrRW = rwElse) OR
+         (identOrRW = rwEnd) OR (identOrRW = rwUntil) THEN
+                  
+          metrics.semicolons := metrics.semicolons + 1;
+          lastSym := Other;
+          isSloc := TRUE
+        
+        (* any other *)
+        ELSIF lastSym = Procedure THEN
+          metrics.procedures := metrics.procedures + 1;
+          lastSym := Other;
+          isSloc := TRUE
+        END (* IF *)
+      
+    (* vertical bar *)
+    | '|' :
+        (* consume and count as semicolon *)
+        Infile.ReadChar(infile, next);
+        metrics.semicolons := metrics.semicolons + 1;
+        lastSym := Other;
         isSloc := TRUE
       
     (* control char *)
@@ -136,6 +184,7 @@ BEGIN
     ELSE
       (* consume *)
       Infile.ReadChar(infile, next);
+      lastSym := Other;
       isSloc := TRUE
     END (* CASE *)
   END (* WHILE *)  
@@ -166,6 +215,35 @@ BEGIN
     Infile.ReadChar(infile, next)
   UNTIL (next = delimiter) OR (next = LF) OR (Infile.eof(infile))
 END SkipQuotedLiteral;
+
+
+(* ---------------------------------------------------------------------------
+ * procedure stdIdent(infile)
+ * ---------------------------------------------------------------------------
+ * Reads and consumes a standard identifier from infile and returns it.
+ * ------------------------------------------------------------------------ *)
+
+PROCEDURE stdIdent ( infile : InfileT ) : StringT;
+
+VAR
+  next : CHAR;
+
+BEGIN
+  (* mark identifier *)
+  Infile.MarkChar(infile);
+  
+  REPEAT
+    Infile.ReadChar(infile, next);
+    next := Infile.lookahead(infile)
+  UNTIL (* not alpha-numeric *)
+    (next < '0') OR
+    ((next > '9') AND (next < 'A')) OR
+    ((next > 'Z') AND (next < 'a')) OR
+    ((next > 'z');
+    
+  (* return identifier *)
+  RETURN Infile.lexeme(infile)
+END stdIdent;
 
 
 (* ---------------------------------------------------------------------------
@@ -242,4 +320,23 @@ BEGIN (* opening delimiter has already been consumed *)
 END SkipPPComment;
 
 
+(* ---------------------------------------------------------------------------
+ * private procedure InitReswords
+ * ---------------------------------------------------------------------------
+ * Initialises string variables rwElsif, rwElse, rwEnd, rwProc and rwUntil.
+ * ------------------------------------------------------------------------ *)
+
+PROCEDURE InitReswords;
+
+BEGIN
+  rwElsif := String.forArray("ELSIF");
+  rwElse  := String.forArray("ELSE");
+  rwEnd   := String.forArray("END");
+  rwProc  := String.forArray("PROCEDURE");
+  rwUntil := String.forArray("UNTIL")
+END InitReswords;
+
+
+BEGIN
+  InitReswords
 END M2Meter.
