@@ -147,7 +147,6 @@ BEGIN
         
         (* PROCEDURE *)
         IF identOrRW = rwProc THEN
-          metrics.procedures := metrics.procedures + 1;
           lastSym := Procedure;
           isSloc := TRUE
         
@@ -155,7 +154,8 @@ BEGIN
         ELSIF
          (identOrRW = rwElsif) OR (identOrRW = rwElse) OR
          (identOrRW = rwEnd) OR (identOrRW = rwUntil) THEN
-                  
+          
+          (* count ELSIF, ELSE, END and UNTIL as semicolons *)
           metrics.semicolons := metrics.semicolons + 1;
           lastSym := Other;
           isSloc := TRUE
