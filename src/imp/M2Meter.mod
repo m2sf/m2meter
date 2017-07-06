@@ -94,9 +94,11 @@ BEGIN
         Infile.ReadFile(infile, next);
         next := Infile.lookahead(infile, next);
         
-        (* if not m2pp directive, count it *)
-        IF next # '?' THEN
+        (* if not PIM pragma nor m2pp directive, count it *)
+        IF (next # '$') AND (next # '?') THEN
           metrics.comments := metrics.comments + 1
+        ELSE (* count it as code *)
+          isSloc := TRUE
         END; (* IF *)
         
         (* consume comment *)
