@@ -262,27 +262,34 @@ END stdIdent;
 PROCEDURE SkipM2Comment ( infile : InfileT; VAR lineCounter : CARDINAL );
 
 VAR
-  next : CHAR;
-  delimiterFound : BOOLEAN;
+  next, la2 : CHAR;
+  commentLevel : CARDINAL;
 
 BEGIN (* opening delimiter has already been consumed *)
-  delimiterFound := FALSE;
+  commentLevel := 1;
   
   (* consume chars until closing delimiter *)
-  WHILE NOT delimiterFound DO
+  WHILE NOT eof(infile) AND (commentLevel > 0) DO
     (* get next char *)
     ReadChar(infile, next);
+    la2 := Infile.la2Char(infile);
     
     (* check for newline *)
     IF next = LF THEN
       lineCounter := lineCounter + 1
     
-    (* check for closing delimiter *)
-    ELSIF (next = '*') AND (Infile.la2Char(infile) = ')') THEN
-      delimiterFound := TRUE;
+    (* check for nested comment *)
+    ELSIF (next = '(') AND (la2 = '*') THEN
+      commentLevel := commentLevel + 1;
       
-      (* consume closing delimiter *)
-      ReadChar(infile, next);
+      (* consume 2nd char of opening delimiter *)
+      ReadChar(infile, next)
+      
+    (* check for closing delimiter *)
+    ELSIF (next = '*') AND (la2 = ')') THEN
+      commentLevel := commentLevel - 1;
+      
+      (* consume 2nd char of closing delimiter *)
       ReadChar(infile, next)
     END (* IF *)
   END (* WHILE *)
@@ -306,7 +313,7 @@ BEGIN (* opening delimiter has already been consumed *)
   delimiterFound := FALSE;
   
   (* consume chars until closing delimiter *)
-  WHILE NOT delimiterFound DO
+  WHILE NOT eof(infile) AND NOT delimiterFound DO
     (* get next char *)
     ReadChar(infile, next);
     
@@ -318,8 +325,7 @@ BEGIN (* opening delimiter has already been consumed *)
     ELSIF (next = '*') AND (Infile.la2Char(infile) = '/') THEN
       delimiterFound := TRUE;
       
-      (* consume closing delimiter *)
-      ReadChar(infile, next);
+      (* consume 2nd char of closing delimiter *)
       ReadChar(infile, next)
     END (* IF *)
   END (* WHILE *)
