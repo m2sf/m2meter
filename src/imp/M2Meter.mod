@@ -73,7 +73,7 @@ BEGIN
         isSloc := FALSE
         
     (* control chars and whitespace *)
-      VT .. SPACE :
+    | VT .. SPACE :
         (* consume *)
         Infile.ReadChar(infile, next)
       
@@ -121,14 +121,14 @@ BEGIN
       END (* IF *)
       
     (* semicolon *)
-      ';' :
+    | ';' :
         (* consume and count *)
         Infile.ReadChar(infile, next);
         metrics.semicolons := metrics.semicolons + 1;
         isSloc := TRUE
       
     (* control char *)
-      DEL :
+    | DEL :
         (* consume *)
         Infile.ReadChar(infile, next)
       
