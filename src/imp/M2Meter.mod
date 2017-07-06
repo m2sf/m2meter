@@ -20,7 +20,7 @@ CONST
   DOUBLEQUOTE = CHR(34);
 
 
-TYPE SymType = (Procedure, Other);
+TYPE SymType = (Procedure, Semicolon, Other);
 
 
 VAR
@@ -138,7 +138,7 @@ BEGIN
         (* consume and count *)
         Infile.ReadChar(infile, next);
         metrics.semicolons := metrics.semicolons + 1;
-        lastSym := Other;
+        lastSym := Semicolon;
         isSloc := TRUE
       
     (* reserved word or identifier *)
@@ -147,31 +147,37 @@ BEGIN
         
         (* PROCEDURE *)
         IF identOrRW = rwProc THEN
-          lastSym := Procedure;
-          isSloc := TRUE
+          lastSym := Procedure
         
-        (* ELSIF | ELSE | END | UNTIL *)
-        ELSIF
-         (identOrRW = rwElsif) OR (identOrRW = rwElse) OR
-         (identOrRW = rwEnd) OR (identOrRW = rwUntil) THEN
+        (* ELSIF, ELSE, END and UNTIL
+           count as semicolon unless preceded by semicolon *)
+        ELSIF (lastSym # Semicolon) AND
+          ((identOrRW = rwElsif) OR (identOrRW = rwElse) OR
+           (identOrRW = rwEnd) OR (identOrRW = rwUntil)) THEN
           
-          (* count ELSIF, ELSE, END and UNTIL as semicolons *)
           metrics.semicolons := metrics.semicolons + 1;
-          lastSym := Other;
-          isSloc := TRUE
+          lastSym := Other
         
-        (* any other *)
+        (* any ident counts as procedure if preceded by PROCEDURE *)
         ELSIF lastSym = Procedure THEN
+          
           metrics.procedures := metrics.procedures + 1;
-          lastSym := Other;
-          isSloc := TRUE
-        END (* IF *)
+          lastSym := Other
+        END; (* IF *)
+        
+        (* will count as code *)
+        isSloc := TRUE
       
     (* vertical bar *)
     | '|' :
-        (* consume and count as semicolon *)
+        (* consume *)
         Infile.ReadChar(infile, next);
-        metrics.semicolons := metrics.semicolons + 1;
+        
+        (* count as semicolon unless preceded by semicolon *)
+        IF lastSym # Semicolon THEN
+          metrics.semicolons := metrics.semicolons + 1
+        END; (* IF *)
+        
         lastSym := Other;
         isSloc := TRUE
       
