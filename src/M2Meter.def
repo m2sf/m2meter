@@ -1,0 +1,32 @@
+(*!m2iso*) (* Copyright (c) 2017 Modula-2 Software Foundation *)
+
+DEFINITION MODULE M2Meter;
+
+(* Modula-2 Source Code Metrics *)
+
+FROM Infile IMPORT InfileT; (* alias for Infile.Infile *)
+
+
+(* ---------------------------------------------------------------------------
+ * Measurements type
+ * ------------------------------------------------------------------------ *)
+
+TYPE Metric = RECORD
+  lines,
+  slocs,
+  comments,
+  semicolons,
+  procedures : CARDINAL
+END; (* Metric *)
+
+
+(* ---------------------------------------------------------------------------
+ * procedure Measure(infile)
+ * ---------------------------------------------------------------------------
+ * Measures file infile and passes back metrics in out-parameter metrics.
+ * ------------------------------------------------------------------------ *)
+
+PROCEDURE Measure ( infile : InfileT; VAR metrics : Metric );
+
+
+END M2Meter.
