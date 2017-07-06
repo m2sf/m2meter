@@ -153,9 +153,18 @@ END Measure;
  * ------------------------------------------------------------------------ *)
 
 PROCEDURE SkipQuotedLiteral ( infile : InfileT );
+  
+VAR
+  next, delimiter : CHAR;
 
 BEGIN
-  (* TO DO *)
+  (* consume and write delimiter *)
+  Infile.ReadChar(infile, delimiter);
+  
+  REPEAT
+    (* consume and write *)
+    Infile.ReadChar(infile, next)
+  UNTIL (next = delimiter) OR (next = LF) OR (Infile.eof(infile))
 END SkipQuotedLiteral;
 
 
@@ -168,8 +177,31 @@ END SkipQuotedLiteral;
 
 PROCEDURE SkipM2Comment ( infile : InfileT; VAR lineCounter : CARDINAL );
 
-BEGIN
-  (* TO DO *)
+VAR
+  next : CHAR;
+  delimiterFound : BOOLEAN;
+
+BEGIN (* opening delimiter "(*" has already been consumed *)
+  delimiterFound := FALSE;
+  
+  (* consume chars until closing delimiter *)
+  WHILE NOT delimiterFound DO
+    (* get next char *)
+    ReadChar(infile, next);
+    
+    (* check for newline *)
+    IF next = LF THEN
+      lineCounter := lineCounter + 1
+    
+    (* check for closing delimiter *)
+    ELSIF (next = '*') AND (Infile.la2Char(infile) = ')') THEN
+      delimiterFound := TRUE;
+      
+      (* consume closing delimiter *)
+      ReadChar(infile, next);
+      ReadChar(infile, next)
+    END (* IF *)
+  END (* WHILE *)
 END SkipM2Comment;
 
 
@@ -182,8 +214,31 @@ END SkipM2Comment;
 
 PROCEDURE SkipPPComment ( infile : InfileT; VAR lineCounter : CARDINAL );
 
-BEGIN
-  (* TO DO *)
+VAR
+  next : CHAR;
+  delimiterFound : BOOLEAN;
+
+BEGIN (* opening delimiter "/*" has already been consumed *)
+  delimiterFound := FALSE;
+  
+  (* consume chars until closing delimiter *)
+  WHILE NOT delimiterFound DO
+    (* get next char *)
+    ReadChar(infile, next);
+    
+    (* check for newline *)
+    IF next = LF THEN
+      lineCounter := lineCounter + 1
+    
+    (* check for closing delimiter *)
+    ELSIF (next = '*') AND (Infile.la2Char(infile) = '/') THEN
+      delimiterFound := TRUE;
+      
+      (* consume closing delimiter *)
+      ReadChar(infile, next);
+      ReadChar(infile, next)
+    END (* IF *)
+  END (* WHILE *)
 END SkipPPComment;
 
 
